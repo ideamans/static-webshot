@@ -1,0 +1,30 @@
+# Binary
+static-web-shot
+static-web-shot.exe
+
+# Test output
+*.test
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+__debug_bin*
+
+# Temporary files
+*.tmp
+*.bak
+
+tmp/
+
+.mcp.json
+.claude
