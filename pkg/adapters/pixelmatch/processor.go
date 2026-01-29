@@ -260,48 +260,70 @@ func (p *Processor) createCompositeImage(baseline, current, diffPanel image.Imag
 	return composite
 }
 
-// loadFont loads a TrueType font from the given path, or returns a basic font if path is empty.
+// loadFont loads a TrueType font with the following priority:
+// 1. Explicit font file path (fontPath)
+// 2. OS-specific default font faces (auto-resolved)
+// 3. Built-in basicfont fallback
 func (p *Processor) loadFont(fontPath string, fontSize float64) font.Face {
 	if fontSize <= 0 {
 		fontSize = 14
 	}
 
+	// Priority 1: explicit font file path
 	if fontPath != "" {
-		data, err := os.ReadFile(fontPath)
-		if err == nil {
-			// Try parsing as single font first
-			f, err := opentype.Parse(data)
-			if err == nil {
-				face, err := opentype.NewFace(f, &opentype.FaceOptions{
-					Size:    fontSize,
-					DPI:     72,
-					Hinting: font.HintingFull,
-				})
-				if err == nil {
-					return face
-				}
-			}
+		if face := p.loadFontFile(fontPath, fontSize); face != nil {
+			return face
+		}
+	}
 
-			// Try parsing as TrueType Collection (.ttc)
-			collection, err := opentype.ParseCollection(data)
-			if err == nil && collection.NumFonts() > 0 {
-				f, err := collection.Font(0) // Use first font in collection
-				if err == nil {
-					face, err := opentype.NewFace(f, &opentype.FaceOptions{
-						Size:    fontSize,
-						DPI:     72,
-						Hinting: font.HintingFull,
-					})
-					if err == nil {
-						return face
-					}
-				}
+	// Priority 2: OS-specific default font faces
+	if resolved := ResolveFontPath(DefaultFontFaces()); resolved != "" {
+		if face := p.loadFontFile(resolved, fontSize); face != nil {
+			return face
+		}
+	}
+
+	// Priority 3: built-in fallback
+	return basicfont.Face7x13
+}
+
+// loadFontFile loads a TrueType font from the given file path.
+func (p *Processor) loadFontFile(fontPath string, fontSize float64) font.Face {
+	data, err := os.ReadFile(fontPath)
+	if err != nil {
+		return nil
+	}
+
+	// Try parsing as single font first
+	f, err := opentype.Parse(data)
+	if err == nil {
+		face, err := opentype.NewFace(f, &opentype.FaceOptions{
+			Size:    fontSize,
+			DPI:     72,
+			Hinting: font.HintingFull,
+		})
+		if err == nil {
+			return face
+		}
+	}
+
+	// Try parsing as TrueType Collection (.ttc)
+	collection, err := opentype.ParseCollection(data)
+	if err == nil && collection.NumFonts() > 0 {
+		f, err := collection.Font(0) // Use first font in collection
+		if err == nil {
+			face, err := opentype.NewFace(f, &opentype.FaceOptions{
+				Size:    fontSize,
+				DPI:     72,
+				Hinting: font.HintingFull,
+			})
+			if err == nil {
+				return face
 			}
 		}
 	}
 
-	// Fallback to basic font
-	return basicfont.Face7x13
+	return nil
 }
 
 // drawCenteredText draws text centered within the given rectangle.
