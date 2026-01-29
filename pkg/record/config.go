@@ -53,6 +53,9 @@ type Config struct {
 
 	// Timeout is the maximum time to wait for operations.
 	Timeout int
+
+	// UserAgent is a custom User-Agent string (overrides preset).
+	UserAgent string
 }
 
 // DefaultConfig returns a Config with default values.

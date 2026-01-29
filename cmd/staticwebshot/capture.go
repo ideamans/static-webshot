@@ -35,13 +35,13 @@ The capture command navigates to the specified URL and captures a screenshot
 with deterministic behavior (disabled animations, fixed time, etc.).
 
 Examples:
-  static-web-shot capture https://example.com
-  static-web-shot capture https://example.com -o screenshot.png
-  static-web-shot capture https://example.com --preset mobile
-  static-web-shot capture https://example.com --viewport 1280x720
-  static-web-shot capture https://example.com --resize 800x600
-  static-web-shot capture https://example.com --resize 800
-  static-web-shot capture https://example.com --mask ".ad-banner" --mask ".cookie-notice"
+  static-webshot capture https://example.com
+  static-webshot capture https://example.com -o screenshot.png
+  static-webshot capture https://example.com --preset mobile
+  static-webshot capture https://example.com --viewport 1280x720
+  static-webshot capture https://example.com --resize 800x600
+  static-webshot capture https://example.com --resize 800
+  static-webshot capture https://example.com --mask ".ad-banner" --mask ".cookie-notice"
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -125,6 +125,7 @@ Examples:
 	cmd.Flags().StringVar(&cfg.MockTime, "mock-time", "", "Fixed time for Date API (ISO 8601 format)")
 	cmd.Flags().StringVar(&cfg.ChromePath, "chrome-path", "", "Path to Chrome executable")
 	cmd.Flags().IntVar(&cfg.Timeout, "timeout", cfg.Timeout, "Navigation timeout in seconds")
+	cmd.Flags().StringVar(&cfg.UserAgent, "user-agent", "", "Custom User-Agent string (overrides preset)")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 
 	return cmd

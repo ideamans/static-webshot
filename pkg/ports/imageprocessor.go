@@ -7,10 +7,6 @@ import (
 
 // CompareOptions configures image comparison behavior.
 type CompareOptions struct {
-	// Threshold is the acceptable pixel difference ratio (0.0 - 1.0)
-	// Default: 0.15 (15% of pixels can differ)
-	Threshold float64
-
 	// ColorThreshold is the per-pixel color difference threshold (0-255)
 	// Default: 10
 	ColorThreshold int
@@ -26,6 +22,22 @@ type CompareOptions struct {
 
 	// DiffOverlay overlays diff markers on the current image instead of creating a separate diff image
 	DiffOverlay bool
+
+	// LabelFontPath is the path to a TrueType font file for labels (optional)
+	// If not specified, a basic built-in font will be used
+	LabelFontPath string
+
+	// LabelFontSize is the font size for labels in points (default: 14)
+	LabelFontSize float64
+
+	// BaselineLabel is the label text for the baseline panel (default: "baseline")
+	BaselineLabel string
+
+	// DiffLabel is the label text for the diff panel (default: "diff")
+	DiffLabel string
+
+	// CurrentLabel is the label text for the current panel (default: "current")
+	CurrentLabel string
 }
 
 // IgnoreRegion defines a rectangular area to exclude from comparison.
@@ -38,9 +50,6 @@ type IgnoreRegion struct {
 
 // CompareResult contains the results of image comparison.
 type CompareResult struct {
-	// Pass indicates whether the comparison passed (diff ratio <= threshold)
-	Pass bool
-
 	// PixelDiffCount is the number of differing pixels
 	PixelDiffCount int
 

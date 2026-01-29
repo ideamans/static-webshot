@@ -10,6 +10,10 @@ import (
 	"path/filepath"
 
 	"github.com/orisano/pixelmatch"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
 )
@@ -88,12 +92,6 @@ func (p *Processor) Compare(baseline, current image.Image, opts ports.CompareOpt
 		maskedCurrent = p.applyMask(current, opts.IgnoreRegions)
 	}
 
-	// Set default threshold if not specified
-	threshold := opts.Threshold
-	if threshold == 0 {
-		threshold = 0.15
-	}
-
 	// Color threshold (normalized to 0-1 range for pixelmatch)
 	colorThreshold := float64(opts.ColorThreshold)
 	if colorThreshold == 0 {
@@ -127,7 +125,18 @@ func (p *Processor) Compare(baseline, current image.Image, opts ports.CompareOpt
 	if opts.DiffOverlay {
 		// Create side-by-side composite: before | diff | after
 		diffPanel := p.createOverlayDiffImage(maskedBaseline, maskedCurrent, colorThreshold)
-		diffImg = p.createCompositeImage(maskedBaseline, maskedCurrent, diffPanel)
+		labels := []string{opts.BaselineLabel, opts.DiffLabel, opts.CurrentLabel}
+		// Apply defaults if empty
+		if labels[0] == "" {
+			labels[0] = "baseline"
+		}
+		if labels[1] == "" {
+			labels[1] = "diff"
+		}
+		if labels[2] == "" {
+			labels[2] = "current"
+		}
+		diffImg = p.createCompositeImage(maskedBaseline, maskedCurrent, diffPanel, opts.LabelFontPath, opts.LabelFontSize, labels)
 	} else if diffImgPtr != nil {
 		diffImg = diffImgPtr
 	} else {
@@ -136,10 +145,8 @@ func (p *Processor) Compare(baseline, current image.Image, opts ports.CompareOpt
 	}
 
 	diffRatio := float64(diffCount) / float64(totalPixels)
-	pass := diffRatio <= threshold
 
 	return &ports.CompareResult{
-		Pass:           pass,
 		PixelDiffCount: diffCount,
 		PixelDiffRatio: diffRatio,
 		TotalPixels:    totalPixels,
@@ -195,36 +202,127 @@ func (p *Processor) createOverlayDiffImage(baseline, current image.Image, thresh
 }
 
 // createCompositeImage creates a side-by-side image: before | diff | after
-func (p *Processor) createCompositeImage(baseline, current, diffPanel image.Image) image.Image {
+func (p *Processor) createCompositeImage(baseline, current, diffPanel image.Image, fontPath string, fontSize float64, labels []string) image.Image {
 	bounds := baseline.Bounds()
 	width := bounds.Dx()
 	height := bounds.Dy()
 
-	// Create composite image with 3 panels side by side
-	composite := image.NewRGBA(image.Rect(0, 0, width*3, height))
+	// Label bar height
+	labelHeight := 24
+	if fontSize > 0 && fontSize > 14 {
+		labelHeight = int(fontSize) + 10
+	}
+
+	// Create composite image with 3 panels side by side + label bar
+	composite := image.NewRGBA(image.Rect(0, 0, width*3, height+labelHeight))
+
+	// Fill label bar with light gray
+	labelBg := color.RGBA{R: 240, G: 240, B: 240, A: 255}
+	for y := 0; y < labelHeight; y++ {
+		for x := 0; x < width*3; x++ {
+			composite.Set(x, y, labelBg)
+		}
+	}
+
+	// Draw labels
+	face := p.loadFont(fontPath, fontSize)
+	for i, label := range labels {
+		p.drawCenteredText(composite, label, i*width, 0, width, labelHeight, face)
+	}
+
+	// Draw 1px border line at bottom of label area
+	borderColor := color.RGBA{R: 200, G: 200, B: 200, A: 255}
+	for x := 0; x < width*3; x++ {
+		composite.Set(x, labelHeight-1, borderColor)
+	}
 
 	// Panel 1: Before (left)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			composite.Set(x, y, baseline.At(x+bounds.Min.X, y+bounds.Min.Y))
+			composite.Set(x, y+labelHeight, baseline.At(x+bounds.Min.X, y+bounds.Min.Y))
 		}
 	}
 
 	// Panel 2: Diff (center)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			composite.Set(x+width, y, diffPanel.At(x+bounds.Min.X, y+bounds.Min.Y))
+			composite.Set(x+width, y+labelHeight, diffPanel.At(x+bounds.Min.X, y+bounds.Min.Y))
 		}
 	}
 
 	// Panel 3: After (right)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			composite.Set(x+width*2, y, current.At(x+bounds.Min.X, y+bounds.Min.Y))
+			composite.Set(x+width*2, y+labelHeight, current.At(x+bounds.Min.X, y+bounds.Min.Y))
 		}
 	}
 
 	return composite
+}
+
+// loadFont loads a TrueType font from the given path, or returns a basic font if path is empty.
+func (p *Processor) loadFont(fontPath string, fontSize float64) font.Face {
+	if fontSize <= 0 {
+		fontSize = 14
+	}
+
+	if fontPath != "" {
+		data, err := os.ReadFile(fontPath)
+		if err == nil {
+			// Try parsing as single font first
+			f, err := opentype.Parse(data)
+			if err == nil {
+				face, err := opentype.NewFace(f, &opentype.FaceOptions{
+					Size:    fontSize,
+					DPI:     72,
+					Hinting: font.HintingFull,
+				})
+				if err == nil {
+					return face
+				}
+			}
+
+			// Try parsing as TrueType Collection (.ttc)
+			collection, err := opentype.ParseCollection(data)
+			if err == nil && collection.NumFonts() > 0 {
+				f, err := collection.Font(0) // Use first font in collection
+				if err == nil {
+					face, err := opentype.NewFace(f, &opentype.FaceOptions{
+						Size:    fontSize,
+						DPI:     72,
+						Hinting: font.HintingFull,
+					})
+					if err == nil {
+						return face
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback to basic font
+	return basicfont.Face7x13
+}
+
+// drawCenteredText draws text centered within the given rectangle.
+func (p *Processor) drawCenteredText(img *image.RGBA, text string, x, y, width, height int, face font.Face) {
+	// Measure text width
+	textWidth := font.MeasureString(face, text).Ceil()
+	metrics := face.Metrics()
+	textHeight := (metrics.Ascent + metrics.Descent).Ceil()
+
+	// Calculate centered position
+	posX := x + (width-textWidth)/2
+	posY := y + (height+textHeight)/2 - metrics.Descent.Ceil()
+
+	// Draw text
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(color.Black),
+		Face: face,
+		Dot:  fixed.Point26_6{X: fixed.I(posX), Y: fixed.I(posY)},
+	}
+	d.DrawString(text)
 }
 
 // createDiffImage creates a diff image by comparing two images pixel by pixel.

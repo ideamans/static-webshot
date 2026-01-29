@@ -40,11 +40,15 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) (*Result, error) {
 
 	e.logger.Debug("Comparing %s vs %s", cfg.BaselinePath, cfg.CurrentPath)
 	compareOpts := ports.CompareOptions{
-		Threshold:          cfg.Threshold,
 		ColorThreshold:     cfg.ColorThreshold,
 		IgnoreAntialiasing: cfg.IgnoreAntialiasing,
 		MaxHeight:          cfg.MaxHeight,
 		DiffOverlay:        cfg.DiffOverlay,
+		LabelFontPath:      cfg.LabelFontPath,
+		LabelFontSize:      cfg.LabelFontSize,
+		BaselineLabel:      cfg.BaselineLabel,
+		DiffLabel:          cfg.DiffLabel,
+		CurrentLabel:       cfg.CurrentLabel,
 	}
 
 	compareResult, err := e.processor.Compare(baseline, current, compareOpts)
@@ -58,11 +62,9 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) (*Result, error) {
 	}
 
 	result := &Result{
-		Pass:           compareResult.Pass,
 		PixelDiffCount: compareResult.PixelDiffCount,
 		PixelDiffRatio: compareResult.PixelDiffRatio,
 		TotalPixels:    compareResult.TotalPixels,
-		Threshold:      cfg.Threshold,
 		BaselinePath:   cfg.BaselinePath,
 		CurrentPath:    cfg.CurrentPath,
 		DiffPath:       cfg.OutputPath,
@@ -74,10 +76,21 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) (*Result, error) {
 	// Output digest to stdout
 	fmt.Println(digest)
 
-	// Save digest to file if path is specified
-	if cfg.DigestPath != "" {
-		if err := e.saveDigest(cfg.DigestPath, digest); err != nil {
-			return nil, fmt.Errorf("save digest: %w", err)
+	// Save text digest to file if path is specified
+	if cfg.DigestTxtPath != "" {
+		if err := e.saveFile(cfg.DigestTxtPath, digest+"\n"); err != nil {
+			return nil, fmt.Errorf("save text digest: %w", err)
+		}
+	}
+
+	// Save JSON digest to file if path is specified
+	if cfg.DigestJSONPath != "" {
+		jsonStr, err := result.ToJSON()
+		if err != nil {
+			return nil, fmt.Errorf("marshal JSON digest: %w", err)
+		}
+		if err := e.saveFile(cfg.DigestJSONPath, jsonStr+"\n"); err != nil {
+			return nil, fmt.Errorf("save JSON digest: %w", err)
 		}
 	}
 
@@ -86,38 +99,30 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) (*Result, error) {
 
 // generateDigest creates a digest text summary of the comparison result.
 func (e *Executor) generateDigest(result *Result) string {
-	status := "PASS"
-	if !result.Pass {
-		status = "FAIL"
-	}
-
 	return fmt.Sprintf(`[Compare Result]
-Status: %s
 Baseline: %s
 Current: %s
 Output: %s
-Diff Pixels: %d / %d (%.2f%%)
-Threshold: %.2f%%`,
-		status,
+Diff Pixels: %d / %d
+Diff Percent: %.4f%%`,
 		result.BaselinePath,
 		result.CurrentPath,
 		result.DiffPath,
 		result.PixelDiffCount,
 		result.TotalPixels,
 		result.PixelDiffRatio*100,
-		result.Threshold*100,
 	)
 }
 
-// saveDigest saves the digest text to a file.
-func (e *Executor) saveDigest(path, digest string) error {
+// saveFile saves content to a file, creating directories as needed.
+func (e *Executor) saveFile(path, content string) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("create directory %s: %w", dir, err)
 	}
 
-	if err := os.WriteFile(path, []byte(digest+"\n"), 0644); err != nil {
-		return fmt.Errorf("write digest file %s: %w", path, err)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write file %s: %w", path, err)
 	}
 
 	return nil

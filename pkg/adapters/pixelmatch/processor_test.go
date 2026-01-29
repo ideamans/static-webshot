@@ -24,21 +24,19 @@ func TestProcessor_Compare_IdenticalImages(t *testing.T) {
 	baseline := createTestImage(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 	current := createTestImage(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 
-	result, err := processor.Compare(baseline, current, ports.CompareOptions{
-		Threshold: 0.15,
-	})
+	result, err := processor.Compare(baseline, current, ports.CompareOptions{})
 	if err != nil {
 		t.Fatalf("Compare() error = %v", err)
 	}
 
-	if !result.Pass {
-		t.Error("Compare() expected Pass = true for identical images")
-	}
 	if result.PixelDiffCount != 0 {
 		t.Errorf("Compare() PixelDiffCount = %d, want 0", result.PixelDiffCount)
 	}
 	if result.TotalPixels != 10000 {
 		t.Errorf("Compare() TotalPixels = %d, want 10000", result.TotalPixels)
+	}
+	if result.PixelDiffRatio != 0 {
+		t.Errorf("Compare() PixelDiffRatio = %f, want 0", result.PixelDiffRatio)
 	}
 }
 
@@ -48,18 +46,16 @@ func TestProcessor_Compare_DifferentImages(t *testing.T) {
 	baseline := createTestImage(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 	current := createTestImage(100, 100, color.RGBA{R: 0, G: 255, B: 0, A: 255})
 
-	result, err := processor.Compare(baseline, current, ports.CompareOptions{
-		Threshold: 0.0, // No tolerance
-	})
+	result, err := processor.Compare(baseline, current, ports.CompareOptions{})
 	if err != nil {
 		t.Fatalf("Compare() error = %v", err)
 	}
 
-	if result.Pass {
-		t.Error("Compare() expected Pass = false for completely different images")
-	}
 	if result.PixelDiffCount == 0 {
 		t.Error("Compare() expected PixelDiffCount > 0 for different images")
+	}
+	if result.PixelDiffRatio == 0 {
+		t.Error("Compare() expected PixelDiffRatio > 0 for different images")
 	}
 }
 
@@ -97,9 +93,7 @@ func TestProcessor_Compare_WithIgnoreRegions(t *testing.T) {
 	}
 
 	// Compare without ignore regions - should have diffs
-	result1, err := processor.Compare(baseline, current, ports.CompareOptions{
-		Threshold: 0.0,
-	})
+	result1, err := processor.Compare(baseline, current, ports.CompareOptions{})
 	if err != nil {
 		t.Fatalf("Compare() error = %v", err)
 	}
@@ -107,7 +101,6 @@ func TestProcessor_Compare_WithIgnoreRegions(t *testing.T) {
 
 	// Compare with ignore region covering the difference - should have fewer diffs
 	result2, err := processor.Compare(baseline, current, ports.CompareOptions{
-		Threshold: 0.0,
 		IgnoreRegions: []ports.IgnoreRegion{
 			{X: 35, Y: 35, Width: 30, Height: 30},
 		},

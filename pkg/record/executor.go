@@ -48,11 +48,17 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 
 	e.logger.Info("Launching browser...")
 
+	// Determine User-Agent (config overrides preset)
+	userAgent := preset.UserAgent
+	if cfg.UserAgent != "" {
+		userAgent = cfg.UserAgent
+	}
+
 	// Launch browser
 	launchOpts := ports.BrowserOptions{
 		Headless:          cfg.Headless,
 		ChromePath:        cfg.ChromePath,
-		UserAgent:         preset.UserAgent,
+		UserAgent:         userAgent,
 		ViewportWidth:     viewportWidth,
 		ViewportHeight:    viewportHeight,
 		IsMobile:          preset.IsMobile,
