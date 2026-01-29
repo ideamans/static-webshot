@@ -2,6 +2,9 @@
 static-webshot
 static-webshot.exe
 
+# GoReleaser
+dist/
+
 # Test output
 *.test
 coverage.out
