@@ -1,0 +1,19 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "static-webshot",
+  "description": "CLI for deterministic web page screenshots and visual regression comparison. Suppresses animations, transitions, carousels, autoplay and clocks so the same page renders identically across runs.",
+  "folders": ["internal/llmdocs"],
+  "excludeFolders": ["node_modules", "dist", "vendor", "testdata"],
+  "rules": [
+    "compare takes two image paths, not URLs. Run capture twice first.",
+    "Capture the same URL twice and compare the results before trusting any diff. A non-empty result means the page has nondeterminism the built-in suppression does not cover.",
+    "--mock-time <ISO8601> is what pins Date, Math.random and performance.now. Without it anything clock-driven differs between runs. Pass the same value to both captures.",
+    "Animation suppression is automatic; carousel suppression is not universal. Only Swiper, Slick, Owl Carousel, Flickity and Bootstrap 5 are handled by name. Custom sliders need --mask or --inject-css.",
+    "A non-zero pixel difference is not automatically a regression. Antialiasing and font rasterisation differ across machines, so compare captures taken on the same platform and try --ignore-antialiasing and --color-threshold first.",
+    "Parse the file written by --digest-json rather than the console output.",
+    "Masked regions cannot report a regression, so mask as little as possible.",
+    "Prefer --wait-selector over a longer --wait-after for content that arrives late.",
+    "A Chrome or Chromium install is required; point at a specific one with --chrome-path.",
+    "The archive is named after the version WITH the v prefix, e.g. static-webshot_v0.3.0_darwin_arm64.tar.gz, and there is no darwin_amd64 build."
+  ]
+}

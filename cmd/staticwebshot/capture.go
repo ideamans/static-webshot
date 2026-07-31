@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/chromebrowser"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/logger"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/osfilesystem"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/record"
+	"github.com/ideamans/static-webshot/pkg/adapters/chromebrowser"
+	"github.com/ideamans/static-webshot/pkg/adapters/logger"
+	"github.com/ideamans/static-webshot/pkg/adapters/osfilesystem"
+	"github.com/ideamans/static-webshot/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/record"
 )
 
 func newCaptureCmd() *cobra.Command {
