@@ -1,6 +1,7 @@
-# Binary
-static-webshot
-static-webshot.exe
+# Binary, at the repository root only. Unanchored, `static-webshot` also
+# matched plugins/static-webshot/, so the plugin could not be committed.
+/static-webshot
+/static-webshot.exe
 
 # GoReleaser
 dist/

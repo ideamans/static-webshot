@@ -1,0 +1,13 @@
+{
+  "name": "static-webshot",
+  "description": "Adds /static-webshot-usage and /static-webshot-install skills for deterministic web page screenshots and visual regression diffs — animations, carousels, autoplay and clocks are suppressed so the same page renders identically twice.",
+  "version": "0.3.0",
+  "author": {
+    "name": "Ideamans Inc.",
+    "email": "support@ideamans.com"
+  },
+  "homepage": "https://github.com/ideamans/static-webshot",
+  "repository": "https://github.com/ideamans/static-webshot",
+  "license": "MIT",
+  "keywords": ["screenshot", "visual-regression", "deterministic", "chrome", "diff", "testing", "cli"]
+}
