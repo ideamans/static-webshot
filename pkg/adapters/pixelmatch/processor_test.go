@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/ports"
 )
 
 func createTestImage(width, height int, c color.Color) image.Image {

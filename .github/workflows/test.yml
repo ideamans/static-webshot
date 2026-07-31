@@ -36,6 +36,32 @@ jobs:
         with:
           go-version: '1.24'
 
+      # The embedded LLM reference is committed because go:embed needs real
+      # files at build time, so the guard against drift is regenerating it here.
+      - name: Regenerate the embedded LLM reference
+        if: runner.os != 'Windows'
+        run: go generate ./...
+
+      - name: Fail if the committed reference is stale
+        if: runner.os != 'Windows'
+        run: |
+          if ! git diff --exit-code -- internal/llmdocs; then
+            echo "::error::internal/llmdocs is out of date. Run 'go generate ./...' and commit the result."
+            exit 1
+          fi
+
+      # ./pkg/... alone would skip TestPluginSkills, which lives beside the
+      # command tree in cmd/staticwebshot.
+      - name: Validate the distributed plugin
+        if: runner.os != 'Windows'
+        run: go test -v ./cmd/...
+
+      - name: Verify the llm subcommand renders
+        if: runner.os != 'Windows'
+        run: |
+          go run ./cmd/staticwebshot llm | head -5
+          go run ./cmd/staticwebshot llm --format json | head -5
+
       - name: Run unit tests (Unix)
         if: runner.os != 'Windows'
         run: go test -v -race ./pkg/...

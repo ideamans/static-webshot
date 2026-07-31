@@ -6,11 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/logger"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/osfilesystem"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/pixelmatch"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/compare"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/adapters/logger"
+	"github.com/ideamans/static-webshot/pkg/adapters/osfilesystem"
+	"github.com/ideamans/static-webshot/pkg/adapters/pixelmatch"
+	"github.com/ideamans/static-webshot/pkg/compare"
+	"github.com/ideamans/static-webshot/pkg/ports"
 )
 
 func newCompareCmd() *cobra.Command {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/ports"
 )
 
 // ConsoleLogger is a simple console-based logger.

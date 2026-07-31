@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/image/draw"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/adapters/chromebrowser"
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/adapters/chromebrowser"
+	"github.com/ideamans/static-webshot/pkg/ports"
 )
 
 // Executor executes the record command.

@@ -12,7 +12,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 
-	"github.com/ideamans/go-page-visual-regression-tester/pkg/ports"
+	"github.com/ideamans/static-webshot/pkg/ports"
 )
 
 // Browser implements ports.Browser using chromedp.
