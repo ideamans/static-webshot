@@ -24,6 +24,13 @@ type Config struct {
 	// ResizeHeight is the output image height (0 = use aspect ratio).
 	ResizeHeight int
 
+	// FullPage captures the whole page instead of the viewport.
+	FullPage bool
+
+	// MaxHeight cuts a full-page capture at this height in CSS pixels
+	// (0 = Chrome's limit, MaxCaptureHeight).
+	MaxHeight int
+
 	// WaitAfter is the time to wait after page load in milliseconds.
 	WaitAfter int
 
@@ -57,6 +64,10 @@ type Config struct {
 	// UserAgent is a custom User-Agent string (overrides preset).
 	UserAgent string
 }
+
+// MaxCaptureHeight is the tallest full-page capture Chrome renders reliably.
+// Taller pages are cut here with a warning.
+const MaxCaptureHeight = 16384
 
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() Config {

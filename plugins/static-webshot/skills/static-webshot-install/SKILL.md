@@ -36,7 +36,7 @@ The repository is public, so no authentication is needed.
 
 ```bash
 VERSION=$(curl -fsSL https://api.github.com/repos/ideamans/static-webshot/releases/latest \
-  | grep '"tag_name"' | head -1 | cut -d'"' -f4)   # e.g. v0.3.0
+  | grep '"tag_name"' | head -1 | cut -d'"' -f4)   # e.g. v0.4.0
 ```
 
 Asset names keep the **`v` prefix** on the version, and use lowercase OS and

@@ -4,6 +4,7 @@ package chromebrowser
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -35,6 +36,9 @@ func (b *Browser) Launch(ctx context.Context, opts ports.BrowserOptions) error {
 		chromedp.Flag("hide-scrollbars", true),
 		chromedp.Flag("autoplay-policy", "user-gesture-required"),
 		chromedp.Flag("disable-background-media-suspend", true),
+		// chromedp gives Chrome 20s to start. A freshly installed Chrome on a
+		// cold machine (first run, CI, containers) can take longer.
+		chromedp.WSURLReadTimeout(60*time.Second),
 	)
 
 	// Handle headless mode
@@ -228,24 +232,83 @@ func (b *Browser) ApplyMasks(ctx context.Context, selectors []string) error {
 	return b.InjectCSS(ctx, strings.Join(cssRules, "\n"))
 }
 
-// Screenshot captures a viewport screenshot (not full page).
-func (b *Browser) Screenshot(ctx context.Context) ([]byte, error) {
-	var buf []byte
+// LoadLazyContent switches native lazy loading to eager. Scrolling is not an
+// option: the deterministic scripts turn window.scrollTo into a no-op, and
+// lazy loading driven by IntersectionObserver is already forced visible there.
+func (b *Browser) LoadLazyContent(ctx context.Context) error {
+	script := `
+(() => {
+  document.querySelectorAll('img[loading="lazy"], iframe[loading="lazy"]').forEach(el => {
+    el.loading = 'eager';
+  });
+})()
+`
+	return b.run(ctx, chromedp.Evaluate(script, nil))
+}
 
+// PageHeight returns the height of the page content in CSS pixels.
+func (b *Browser) PageHeight(ctx context.Context) (int, error) {
+	var height int
+	err := b.run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
+		_, _, contentSize, _, _, _, err := page.GetLayoutMetrics().Do(ctx)
+		if err != nil {
+			return err
+		}
+		height = int(math.Ceil(contentSize.Height))
+		return nil
+	}))
+	return height, err
+}
+
+// Screenshot captures the visible viewport, or the whole page when
+// opts.FullPage is set. A full-page capture keeps the viewport width so that
+// captures of the same page always have the same width.
+func (b *Browser) Screenshot(ctx context.Context, opts ports.ScreenshotOptions) ([]byte, error) {
+	var buf []byte
+	var action chromedp.Action = chromedp.CaptureScreenshot(&buf)
+	if opts.FullPage {
+		action = chromedp.ActionFunc(func(ctx context.Context) error {
+			layoutViewport, _, contentSize, _, _, _, err := page.GetLayoutMetrics().Do(ctx)
+			if err != nil {
+				return err
+			}
+			height := float64(opts.Height)
+			if height <= 0 {
+				height = math.Ceil(contentSize.Height)
+			}
+			buf, err = page.CaptureScreenshot().
+				WithFormat(page.CaptureScreenshotFormatPng).
+				WithCaptureBeyondViewport(true).
+				WithFromSurface(true).
+				WithClip(&page.Viewport{
+					X:      0,
+					Y:      0,
+					Width:  float64(layoutViewport.ClientWidth),
+					Height: height,
+					Scale:  1,
+				}).
+				Do(ctx)
+			return err
+		})
+	}
+	if err := b.run(ctx, action); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// run executes actions on the page, giving up when ctx is cancelled.
+func (b *Browser) run(ctx context.Context, actions ...chromedp.Action) error {
 	done := make(chan error, 1)
 	go func() {
-		// CaptureScreenshot captures the visible viewport only
-		done <- chromedp.Run(b.ctx, chromedp.CaptureScreenshot(&buf))
+		done <- chromedp.Run(b.ctx, actions...)
 	}()
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	case err := <-done:
-		if err != nil {
-			return nil, err
-		}
-		return buf, nil
+		return err
 	}
 }
 

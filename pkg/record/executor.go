@@ -125,6 +125,13 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 		e.logger.Warn("Failed to wait for fonts: %v", err)
 	}
 
+	if cfg.FullPage {
+		e.logger.Debug("Switching lazy-loaded images to eager...")
+		if err := e.browser.LoadLazyContent(ctx); err != nil {
+			e.logger.Warn("Failed to load lazy content: %v", err)
+		}
+	}
+
 	e.logger.Debug("Waiting for images...")
 	if err := e.browser.WaitForImages(ctx); err != nil {
 		e.logger.Warn("Failed to wait for images: %v", err)
@@ -142,8 +149,26 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 	time.Sleep(100 * time.Millisecond)
 
 	// Take screenshot
-	e.logger.Info("Taking screenshot...")
-	screenshot, err := e.browser.Screenshot(ctx)
+	shotOpts := ports.ScreenshotOptions{FullPage: cfg.FullPage}
+	if cfg.FullPage {
+		pageHeight, err := e.browser.PageHeight(ctx)
+		if err != nil {
+			return fmt.Errorf("measure page height: %w", err)
+		}
+		shotOpts.Height = captureHeight(pageHeight, cfg.MaxHeight)
+		if shotOpts.Height < pageHeight {
+			if cfg.MaxHeight > 0 {
+				e.logger.Info("Page is %dpx tall; cutting at --max-height %dpx", pageHeight, shotOpts.Height)
+			} else {
+				e.logger.Warn("Page is %dpx tall; cutting at Chrome's limit of %dpx (set --max-height to choose)",
+					pageHeight, shotOpts.Height)
+			}
+		}
+		e.logger.Info("Taking full-page screenshot (%dpx tall)...", shotOpts.Height)
+	} else {
+		e.logger.Info("Taking screenshot...")
+	}
+	screenshot, err := e.browser.Screenshot(ctx, shotOpts)
 	if err != nil {
 		return fmt.Errorf("take screenshot: %w", err)
 	}
@@ -170,6 +195,18 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 
 	e.logger.Info("Done! Screenshot saved to %s", cfg.OutputPath)
 	return nil
+}
+
+// captureHeight decides how much of a page a full-page capture covers.
+func captureHeight(pageHeight, maxHeight int) int {
+	limit := MaxCaptureHeight
+	if maxHeight > 0 && maxHeight < limit {
+		limit = maxHeight
+	}
+	if pageHeight > limit {
+		return limit
+	}
+	return pageHeight
 }
 
 // resizeScreenshot resizes the screenshot to the specified dimensions.

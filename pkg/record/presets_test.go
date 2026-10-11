@@ -49,3 +49,25 @@ func TestGetPreset(t *testing.T) {
 		})
 	}
 }
+
+func TestCaptureHeight(t *testing.T) {
+	tests := []struct {
+		name       string
+		pageHeight int
+		maxHeight  int
+		want       int
+	}{
+		{"short page, no limit", 4000, 0, 4000},
+		{"short page under max-height", 4000, 5000, 4000},
+		{"cut at max-height", 4000, 2000, 2000},
+		{"cut at Chrome's limit", 30000, 0, MaxCaptureHeight},
+		{"max-height above Chrome's limit", 30000, 20000, MaxCaptureHeight},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := captureHeight(tt.pageHeight, tt.maxHeight); got != tt.want {
+				t.Errorf("captureHeight(%d, %d) = %d, want %d", tt.pageHeight, tt.maxHeight, got, tt.want)
+			}
+		})
+	}
+}

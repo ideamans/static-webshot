@@ -51,6 +51,9 @@ static-webshot capture https://example.com -o loaded.png --wait-after 2000
 
 # 特定の要素を非表示
 static-webshot capture https://example.com -o clean.png --mask ".ad-banner" --mask ".cookie-notice"
+
+# ファーストビューだけでなくページ全体（リファクタリングの前後確認など）
+static-webshot capture https://example.com -o before.png --full-page
 ```
 
 ### 画像の比較
@@ -104,6 +107,8 @@ JSONダイジェスト出力 (`--digest-json`):
 | `--preset` | デバイスプリセット（`desktop`, `mobile`） | `desktop` |
 | `--viewport` | ビューポートサイズ（`幅x高さ` または `幅`） | プリセット値 |
 | `--resize` | 出力画像サイズ（`幅x高さ` または `幅`） | リサイズなし |
+| `--full-page` | ビューポートではなくページ全体を撮影 | `false` |
+| `--max-height` | `--full-page` 時、この高さ（px）で切る（`0` = Chrome の上限 16384） | `0` |
 | `--wait-after` | ページ読み込み後の待機時間（ms） | `0` |
 | `--mask` | 非表示にする要素のCSSセレクタ（複数指定可） | なし |
 | `--wait-selector` | 待機するCSSセレクタ（複数指定可） | なし |

@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      # A push to the build branch is a snapshot dry run with no tag to check.
+      - if: startsWith(github.ref, 'refs/tags/')
+        run: |
           tag="${GITHUB_REF_NAME#v}"
           declared=$(grep -oE 'PluginVersion = "[^"]+"' cmd/staticwebshot/main.go | cut -d'"' -f2)
           if [ "$tag" != "$declared" ]; then
@@ -77,6 +79,13 @@ jobs:
         uses: browser-actions/setup-chrome@v1
         with:
           chrome-version: stable
+
+      # Ubuntu 23.10+ restricts unprivileged user namespaces with AppArmor,
+      # and Chrome then refuses to start ("No usable sandbox!"). The browser
+      # tests in pkg/record need a working Chrome.
+      - name: Allow Chrome's sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Run tests (Unix)
         if: runner.os != 'Windows'

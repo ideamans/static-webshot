@@ -20,6 +20,16 @@ Examples:
   static-webshot capture https://example.com --resize 800x600
   static-webshot capture https://example.com --resize 800
   static-webshot capture https://example.com --mask ".ad-banner" --mask ".cookie-notice"
+  static-webshot capture https://example.com --full-page -o before.png
+  static-webshot capture https://example.com --full-page --max-height 8000
+
+Full-page captures:
+  --full-page captures the whole page at the viewport width instead of only
+  the first screen. Images with loading="lazy" are switched to eager first so
+  the content below the fold is not blank. Pages taller than 16384px (Chrome's
+  limit) are cut there with a warning; --max-height cuts earlier. Pages of
+  different lengths can still be compared: compare pads the shorter image and
+  reports the extra length as a difference.
 
 ```
 static-webshot capture <url>
@@ -28,11 +38,13 @@ static-webshot capture <url>
 | flag | type | default | description |
 | --- | --- | --- | --- |
 | `--chrome-path` | string | — | Path to Chrome executable |
+| `--full-page` | bool | `false` | Capture the whole page, not just the viewport |
 | `--headful` | bool | `false` | Run in headful mode (opposite of headless) |
 | `--headless` | bool | `true` | Run in headless mode |
 | `--ignore-tls-errors` | bool | `false` | Ignore TLS certificate errors |
 | `--inject-css` | string | — | Custom CSS to inject |
 | `--mask` | stringArray | `[]` | CSS selector for elements to hide (can be repeated) |
+| `--max-height` | int | `0` | With --full-page, cut the capture at this height in CSS pixels (0 = Chrome's limit, 16384) |
 | `--mock-time` | string | — | Fixed time for Date API (ISO 8601 format) |
 | `-o`, `--output` | string | `./capture.png` | Output file path |
 | `--preset` | string | `desktop` | Device preset (desktop, mobile) |

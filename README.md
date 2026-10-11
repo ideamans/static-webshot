@@ -51,6 +51,9 @@ static-webshot capture https://example.com -o loaded.png --wait-after 2000
 
 # Hide specific elements
 static-webshot capture https://example.com -o clean.png --mask ".ad-banner" --mask ".cookie-notice"
+
+# Whole page, not just the first screen (e.g. before/after a refactor)
+static-webshot capture https://example.com -o before.png --full-page
 ```
 
 ### Compare Images
@@ -104,6 +107,8 @@ JSON digest output (`--digest-json`):
 | `--preset` | Device preset (`desktop`, `mobile`) | `desktop` |
 | `--viewport` | Viewport size (`WIDTHxHEIGHT` or `WIDTH`) | Preset value |
 | `--resize` | Output image size (`WIDTHxHEIGHT` or `WIDTH`) | No resize |
+| `--full-page` | Capture the whole page instead of the viewport | `false` |
+| `--max-height` | With `--full-page`, cut at this height in px (`0` = Chrome's limit, 16384) | `0` |
 | `--wait-after` | Wait time after page load (ms) | `0` |
 | `--mask` | CSS selector for elements to hide (repeatable) | None |
 | `--wait-selector` | CSS selector to wait for (repeatable) | None |

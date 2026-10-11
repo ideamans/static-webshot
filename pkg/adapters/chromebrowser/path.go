@@ -30,6 +30,22 @@ func ResolveChromePath(providedPath string) string {
 // findChrome searches for Chrome/Chromium in system default locations.
 // If no system Chrome is found, it falls back to auto-installing via Playwright.
 func findChrome() string {
+	if path := FindSystemChrome(); path != "" {
+		return path
+	}
+
+	// No system Chrome found, try to install via Playwright
+	return installChromiumViaPlaywright()
+}
+
+// FindSystemChrome returns the path of a Chrome or Chromium already installed
+// on the machine (CHROME_PATH first), or "" if there is none. Unlike
+// ResolveChromePath it never downloads a browser.
+func FindSystemChrome() string {
+	if envPath := os.Getenv("CHROME_PATH"); envPath != "" {
+		return envPath
+	}
+
 	var candidates []string
 
 	switch runtime.GOOS {
@@ -82,8 +98,7 @@ func findChrome() string {
 		}
 	}
 
-	// No system Chrome found, try to install via Playwright
-	return installChromiumViaPlaywright()
+	return ""
 }
 
 // resolveExecutable checks if the given path/name exists as an executable.
