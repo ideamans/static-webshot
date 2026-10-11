@@ -101,6 +101,7 @@ Parse `--digest-json`, not the console output.
 | --- | --- |
 | `command not found: static-webshot` | run the `static-webshot-install` skill |
 | Chrome not found | install Chrome/Chromium, or pass `--chrome-path` |
+| `No usable sandbox!` (Ubuntu 23.10+) | AppArmor blocks Chrome's sandbox — ask the user before running `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` |
 | navigation timeout | raise `--timeout` (seconds), or wait with `--wait-selector` |
 | TLS certificate error on staging | `--ignore-tls-errors` |
 | two captures of the same page differ | remaining nondeterminism — work through §4 |

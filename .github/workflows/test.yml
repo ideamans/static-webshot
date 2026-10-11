@@ -62,6 +62,13 @@ jobs:
           go run ./cmd/staticwebshot llm | head -5
           go run ./cmd/staticwebshot llm --format json | head -5
 
+      # Ubuntu 23.10+ restricts unprivileged user namespaces with AppArmor,
+      # and Chrome then refuses to start ("No usable sandbox!"). The browser
+      # tests in pkg/record need a working Chrome.
+      - name: Allow Chrome's sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Run unit tests (Unix)
         if: runner.os != 'Windows'
         run: go test -v -race ./pkg/...
@@ -114,6 +121,13 @@ jobs:
       - name: Build binary (Windows)
         if: runner.os == 'Windows'
         run: go build -o static-webshot.exe ./cmd/staticwebshot
+
+      # Ubuntu 23.10+ restricts unprivileged user namespaces with AppArmor,
+      # and Chrome then refuses to start ("No usable sandbox!"). The browser
+      # tests in pkg/record need a working Chrome.
+      - name: Allow Chrome's sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Run integration tests (Unix)
         if: runner.os != 'Windows'

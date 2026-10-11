@@ -35,7 +35,9 @@ go run ./cmd/staticwebshot llm | head
 `pkg/record/fullpage_integration_test.go` drives a real Chrome through the
 whole capture pipeline. It uses an installed Chrome (or `CHROME_PATH`) and
 skips when there is none or under `-short` — it never triggers the Playwright
-download. CI installs Chrome on every runner, so there it always runs.
+download. CI runs it on linux-amd64, macOS and Windows (linux-arm64 has no Chrome
+in `test.yml` and skips). On Linux the workflows lift Ubuntu's AppArmor
+user-namespace restriction first, or Chrome refuses to start.
 
 `PluginVersion` (`cmd/staticwebshot/main.go`) and
 `plugins/static-webshot/.claude-plugin/plugin.json` must always agree, and the

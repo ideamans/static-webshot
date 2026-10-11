@@ -129,6 +129,7 @@ In this order:
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Chrome not found | no Chrome/Chromium on the machine | install one, or point at it with `--chrome-path` |
+| `chrome failed to start` … `No usable sandbox!` | Ubuntu 23.10+ blocks the unprivileged user namespaces Chrome's sandbox needs | `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or install Chrome with its AppArmor profile; ask the user before changing the system |
 | Navigation timeout | slow page or wrong URL | raise `--timeout` (seconds), or wait on an element with `--wait-selector` |
 | TLS certificate error | staging host with a self-signed certificate | `--ignore-tls-errors` |
 | Two captures of the same page differ | remaining nondeterminism | work through *When a page still moves* |

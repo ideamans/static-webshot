@@ -78,6 +78,13 @@ jobs:
         with:
           chrome-version: stable
 
+      # Ubuntu 23.10+ restricts unprivileged user namespaces with AppArmor,
+      # and Chrome then refuses to start ("No usable sandbox!"). The browser
+      # tests in pkg/record need a working Chrome.
+      - name: Allow Chrome's sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Run tests (Unix)
         if: runner.os != 'Windows'
         run: go test -v -race -timeout 10m ./...
