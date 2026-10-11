@@ -4,6 +4,7 @@ package chromebrowser
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 
 	"github.com/ideamans/static-webshot/pkg/ports"
@@ -78,7 +80,7 @@ func (b *Browser) Launch(ctx context.Context, opts ports.BrowserOptions) error {
 	}
 
 	b.allocCtx, b.allocCancel = chromedp.NewExecAllocator(ctx, chromedpOpts...)
-	b.ctx, b.cancel = chromedp.NewContext(b.allocCtx)
+	b.ctx, b.cancel = chromedp.NewContext(b.allocCtx, chromedp.WithErrorf(logChromedpError))
 
 	// Set custom headers if provided
 	if len(opts.Headers) > 0 {
@@ -99,6 +101,18 @@ func (b *Browser) Launch(ctx context.Context, opts ports.BrowserOptions) error {
 	}
 
 	return nil
+}
+
+// logChromedpError is chromedp's default error log minus events it cannot
+// decode. A Chrome newer than the pinned cdproto sends enum values it does not
+// know (IPAddressSpace "Loopback" on every localhost request), which printed
+// a hundred-odd ERROR lines on a capture that succeeded. Nothing here listens
+// for those events; chromedp itself drops events it does not know at all.
+func logChromedpError(format string, v ...any) {
+	if strings.HasPrefix(format, "could not unmarshal event") {
+		return
+	}
+	log.Printf("ERROR: "+format, v...)
 }
 
 // Navigate loads the specified URL and waits for the load event.
@@ -179,44 +193,49 @@ func (b *Browser) WaitForSelector(ctx context.Context, selector string) error {
 
 // WaitForFonts waits for all fonts to be loaded.
 func (b *Browser) WaitForFonts(ctx context.Context) error {
-	done := make(chan error, 1)
-	go func() {
-		done <- chromedp.Run(b.ctx, chromedp.Evaluate(`document.fonts.ready`, nil))
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-done:
-		return err
-	}
+	return b.run(ctx, evaluateAwait(`document.fonts.ready.then(() => true)`))
 }
 
-// WaitForImages waits for all images to be loaded.
-func (b *Browser) WaitForImages(ctx context.Context) error {
-	script := `
+// waitForImagesScript resolves once every image that is going to load has
+// loaded and been decoded. decode() also covers decoding="async", whose pixels
+// can still be missing after the load event.
+//
+// A lazy image that has not started loading and is outside the viewport is
+// skipped: it never loads on its own, so waiting would only run into the
+// timeout. With --full-page, LoadLazyContent has already switched those to
+// eager, so they are waited for.
+const waitForImagesScript = `
 (() => {
-  const images = Array.from(document.querySelectorAll('img'));
+  const inViewport = (img) => {
+    const r = img.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 &&
+      r.top < window.innerHeight && r.left < window.innerWidth;
+  };
+  const images = Array.from(document.querySelectorAll('img')).filter(img =>
+    img.complete || img.loading !== 'lazy' || inViewport(img));
   return Promise.all(images.map(img => {
-    if (img.complete) return Promise.resolve();
-    return new Promise((resolve) => {
-      img.addEventListener('load', resolve);
-      img.addEventListener('error', resolve);
+    const loaded = img.complete ? Promise.resolve() : new Promise((resolve) => {
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
     });
-  }));
+    return loaded.then(() => img.decode()).catch(() => {});
+  })).then(() => true);
 })()
 `
-	done := make(chan error, 1)
-	go func() {
-		done <- chromedp.Run(b.ctx, chromedp.Evaluate(script, nil))
-	}()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-done:
-		return err
-	}
+// WaitForImages waits for all images to be loaded and decoded.
+func (b *Browser) WaitForImages(ctx context.Context) error {
+	return b.run(ctx, evaluateAwait(waitForImagesScript))
+}
+
+// evaluateAwait evaluates an expression that returns a Promise and waits for
+// it to settle. chromedp.Evaluate does not await by default, so without this
+// the waits above return immediately.
+func evaluateAwait(expression string) chromedp.Action {
+	var settled bool
+	return chromedp.Evaluate(expression, &settled, func(p *runtime.EvaluateParams) *runtime.EvaluateParams {
+		return p.WithAwaitPromise(true)
+	})
 }
 
 // ApplyMasks hides elements matching the given CSS selectors.

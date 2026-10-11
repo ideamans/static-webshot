@@ -50,7 +50,7 @@ static-webshot capture <url>
 | `--preset` | string | `desktop` | Device preset (desktop, mobile) |
 | `--proxy` | string | — | HTTP proxy URL |
 | `--resize` | string | — | Output image size (WIDTH or WIDTHxHEIGHT) |
-| `--timeout` | int | `30` | Navigation timeout in seconds |
+| `--timeout` | int | `30` | Timeout in seconds for navigation, and separately for waiting on fonts and images |
 | `--user-agent` | string | — | Custom User-Agent string (overrides preset) |
 | `-v`, `--verbose` | bool | `false` | Enable verbose output |
 | `--viewport` | string | — | Viewport size (WIDTH or WIDTHxHEIGHT) |

@@ -303,13 +303,24 @@ const FreezeCarouselsScript = `
       });
     }
 
-    // Generic: Reset transforms on common slider wrapper elements
-    // This is safe even if the libraries aren't present
+    // Generic: Reset transforms on common slider wrapper elements whose
+    // library instance was not found above. A slider the library has just
+    // moved to its first slide must keep that position: with infinite or
+    // loop mode the first slide sits after cloned slides, so translate 0
+    // shows the clones of the last slides instead (and the library may or
+    // may not reposition before the capture, so it also varied by run).
+    const handled = [
+      '.slick-initialized',
+      '.owl-loaded',
+      '.flickity-enabled',
+    ].join(',');
     ['.swiper-wrapper', '.slick-track', '.owl-stage', '.flickity-slider'].forEach(selector => {
       document.querySelectorAll(selector).forEach(el => {
         try {
-          el.style.transform = 'translate3d(0, 0, 0)';
           el.style.transition = 'none';
+          const swiperEl = el.closest('.swiper-container, .swiper');
+          if (el.closest(handled) || (swiperEl && swiperEl.swiper)) return;
+          el.style.transform = 'translate3d(0, 0, 0)';
         } catch (e) {}
       });
     });

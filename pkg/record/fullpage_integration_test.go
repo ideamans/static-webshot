@@ -10,7 +10,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/ideamans/static-webshot/pkg/adapters/chromebrowser"
 	"github.com/ideamans/static-webshot/pkg/adapters/logger"
@@ -73,8 +75,30 @@ func newTestSite(t *testing.T) *httptest.Server {
 		w.Header().Set("Content-Type", "image/png")
 		w.Write(redPNG.Bytes())
 	})
+	// The same page with the image served late, or never.
+	mux.HandleFunc("/slow", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(strings.Replace(fullPageHTML, `src="/red.png"`, `src="/slow.png" decoding="async"`, 1)))
+	})
+	mux.HandleFunc("/slow.png", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second)
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(redPNG.Bytes())
+	})
+	stalled := make(chan struct{})
+	mux.HandleFunc("/stalled", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(strings.Replace(fullPageHTML, `src="/red.png"`, `src="/stalled.png"`, 1)))
+	})
+	mux.HandleFunc("/stalled.png", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-stalled:
+		case <-r.Context().Done():
+		}
+	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
+	t.Cleanup(func() { close(stalled) }) // runs first, so Close does not wait on the handler
 	return srv
 }
 
@@ -87,7 +111,9 @@ func capture(t *testing.T, chrome string, cfg Config) image.Image {
 	cfg.ViewportHeight = 600
 	cfg.Headless = true
 	cfg.ChromePath = chrome
-	cfg.Timeout = 60
+	if cfg.Timeout == 0 {
+		cfg.Timeout = 60
+	}
 	cfg.OutputPath = filepath.Join(t.TempDir(), "capture.png")
 
 	executor := NewExecutor(chromebrowser.New(), osfilesystem.New(), logger.New())
@@ -186,4 +212,28 @@ func TestCaptureFullPageChromeLimit(t *testing.T) {
 	if got := img.Bounds().Size(); got != image.Pt(800, MaxCaptureHeight) {
 		t.Fatalf("20000px page capture size = %v, want 800x%d", got, MaxCaptureHeight)
 	}
+}
+
+// Regression for v0.4.0: the waits did not await their Promise, so a lazy image
+// switched to eager was captured before it arrived and came out white.
+func TestCaptureFullPageWaitsForSlowLazyImage(t *testing.T) {
+	chrome := requireChrome(t)
+	srv := newTestSite(t)
+
+	img := capture(t, chrome, Config{URL: srv.URL + "/slow", FullPage: true})
+	assertColor(t, img, 400, 4650, color.RGBA{255, 0, 0, 255}, "lazy image served after 2s")
+}
+
+// Now that the wait really blocks, an image that never arrives must not hang
+// the capture: --timeout cuts the wait and the capture goes ahead without it.
+func TestCaptureFullPageGivesUpOnStalledImage(t *testing.T) {
+	chrome := requireChrome(t)
+	srv := newTestSite(t)
+
+	start := time.Now()
+	img := capture(t, chrome, Config{URL: srv.URL + "/stalled", FullPage: true, Timeout: 3})
+	if elapsed := time.Since(start); elapsed > 20*time.Second {
+		t.Errorf("capture took %v with --timeout 3 and a stalled image", elapsed)
+	}
+	assertColor(t, img, 400, 4750, color.RGBA{0, 255, 0, 255}, "footer")
 }

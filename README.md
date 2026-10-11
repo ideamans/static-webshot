@@ -116,7 +116,7 @@ JSON digest output (`--digest-json`):
 | `--mock-time` | Fixed time for Date API (ISO 8601) | None |
 | `--proxy` | HTTP proxy URL | None |
 | `--ignore-tls-errors` | Ignore TLS certificate errors | `false` |
-| `--timeout` | Navigation timeout (seconds) | `30` |
+| `--timeout` | Timeout (seconds) for navigation, and separately for waiting on fonts and images | `30` |
 | `--user-agent` | Custom User-Agent string (overrides preset) | Preset value |
 | `--headful` | Run browser in headful mode | `false` |
 | `--chrome-path` | Path to Chrome executable | Auto-detect |

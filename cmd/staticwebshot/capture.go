@@ -144,7 +144,7 @@ Full-page captures:
 	cmd.Flags().StringVar(&cfg.InjectCSS, "inject-css", "", "Custom CSS to inject")
 	cmd.Flags().StringVar(&cfg.MockTime, "mock-time", "", "Fixed time for Date API (ISO 8601 format)")
 	cmd.Flags().StringVar(&cfg.ChromePath, "chrome-path", "", "Path to Chrome executable")
-	cmd.Flags().IntVar(&cfg.Timeout, "timeout", cfg.Timeout, "Navigation timeout in seconds")
+	cmd.Flags().IntVar(&cfg.Timeout, "timeout", cfg.Timeout, "Timeout in seconds for navigation, and separately for waiting on fonts and images")
 	cmd.Flags().StringVar(&cfg.UserAgent, "user-agent", "", "Custom User-Agent string (overrides preset)")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 

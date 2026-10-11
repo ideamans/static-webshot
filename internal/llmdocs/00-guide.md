@@ -44,7 +44,8 @@ you what is already handled and what is not:
   and friends are no-ops, so a page cannot scroll itself between shots.
 - **Web Animations API disabled.**
 - **Carousels stopped and reset** — Swiper, Slick, Owl Carousel, Flickity and
-  Bootstrap 5 carousel specifically. **This list is not universal**: a custom or
+  Bootstrap 5 carousel specifically, each moved to its first slide (in
+  infinite / loop mode too). **This list is not universal**: a custom or
   less common slider keeps moving.
 - **`--mock-time <ISO8601>`** additionally pins `Date`, `Math.random` and
   `performance.now`.
@@ -88,7 +89,10 @@ viewport capture never looks.
   `100vh` elements keep the viewport height — do **not** fake a full page with
   `--viewport 1280x9000`, which stretches them and still needs a guessed height.
 - Images and iframes with `loading="lazy"` are switched to eager before the
-  wait for images, so content below the fold is not captured blank.
+  wait for images, so content below the fold is not captured blank. The wait
+  covers loading and decoding (`decoding="async"` too) and is bounded by
+  `--timeout`. Before v0.4.1 the wait returned immediately and such images
+  could come out white — re-take captures made with v0.4.0.
   Script-driven lazy loading is covered by the forced IntersectionObserver.
 - `position: fixed` / `sticky` elements appear once, at the top.
 - Chrome cannot render taller than **16384px**; a longer page is cut there with
@@ -131,6 +135,7 @@ In this order:
 | Chrome not found | no Chrome/Chromium on the machine | install one, or point at it with `--chrome-path` |
 | `chrome failed to start` … `No usable sandbox!` | Ubuntu 23.10+ blocks the unprivileged user namespaces Chrome's sandbox needs | `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or install Chrome with its AppArmor profile; ask the user before changing the system |
 | Navigation timeout | slow page or wrong URL | raise `--timeout` (seconds), or wait on an element with `--wait-selector` |
+| `WARN: Failed to wait for images: context deadline exceeded` | an image did not arrive within `--timeout`; the capture went ahead without it | check the image URL; raise `--timeout` if the server is just slow |
 | TLS certificate error | staging host with a self-signed certificate | `--ignore-tls-errors` |
 | Two captures of the same page differ | remaining nondeterminism | work through *When a page still moves* |
 | Diff is large but the page looks identical | antialiasing or a different machine | `--ignore-antialiasing`, raise `--color-threshold`, compare on one platform |

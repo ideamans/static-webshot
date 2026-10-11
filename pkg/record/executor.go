@@ -119,9 +119,18 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Wait for fonts and images
+	// Waiting on fonts and images really blocks, so a stalled image server
+	// would hang the capture. Give the waits their own --timeout and capture
+	// whatever has arrived when it runs out.
+	waitCtx := ctx
+	if cfg.Timeout > 0 {
+		var cancel context.CancelFunc
+		waitCtx, cancel = context.WithTimeout(ctx, time.Duration(cfg.Timeout)*time.Second)
+		defer cancel()
+	}
+
 	e.logger.Debug("Waiting for fonts...")
-	if err := e.browser.WaitForFonts(ctx); err != nil {
+	if err := e.browser.WaitForFonts(waitCtx); err != nil {
 		e.logger.Warn("Failed to wait for fonts: %v", err)
 	}
 
@@ -133,7 +142,7 @@ func (e *Executor) Execute(ctx context.Context, cfg Config) error {
 	}
 
 	e.logger.Debug("Waiting for images...")
-	if err := e.browser.WaitForImages(ctx); err != nil {
+	if err := e.browser.WaitForImages(waitCtx); err != nil {
 		e.logger.Warn("Failed to wait for images: %v", err)
 	}
 

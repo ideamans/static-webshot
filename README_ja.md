@@ -116,7 +116,7 @@ JSONダイジェスト出力 (`--digest-json`):
 | `--mock-time` | Date APIの固定時刻（ISO 8601形式） | なし |
 | `--proxy` | HTTPプロキシURL | なし |
 | `--ignore-tls-errors` | TLS証明書エラーを無視 | `false` |
-| `--timeout` | ナビゲーションタイムアウト（秒） | `30` |
+| `--timeout` | タイムアウト（秒）。ページの読み込みと、フォント・画像の待ちのそれぞれに掛かる | `30` |
 | `--user-agent` | カスタムUser-Agent文字列（プリセットを上書き） | プリセット値 |
 | `--headful` | ヘッドフルモードでブラウザを実行 | `false` |
 | `--chrome-path` | Chrome実行ファイルのパス | 自動検出 |

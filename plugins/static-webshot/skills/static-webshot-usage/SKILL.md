@@ -103,6 +103,7 @@ Parse `--digest-json`, not the console output.
 | Chrome not found | install Chrome/Chromium, or pass `--chrome-path` |
 | `No usable sandbox!` (Ubuntu 23.10+) | AppArmor blocks Chrome's sandbox — ask the user before running `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` |
 | navigation timeout | raise `--timeout` (seconds), or wait with `--wait-selector` |
+| `Failed to wait for images: context deadline exceeded` | an image missed `--timeout` and is absent from the shot — check its URL, or raise `--timeout` |
 | TLS certificate error on staging | `--ignore-tls-errors` |
 | two captures of the same page differ | remaining nondeterminism — work through §4 |
 | huge diff, page looks identical | antialiasing or a different machine — `--ignore-antialiasing`, raise `--color-threshold` |
