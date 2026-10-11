@@ -19,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      # A push to the build branch is a snapshot dry run with no tag to check.
+      - if: startsWith(github.ref, 'refs/tags/')
+        run: |
           tag="${GITHUB_REF_NAME#v}"
           declared=$(grep -oE 'PluginVersion = "[^"]+"' cmd/staticwebshot/main.go | cut -d'"' -f2)
           if [ "$tag" != "$declared" ]; then
