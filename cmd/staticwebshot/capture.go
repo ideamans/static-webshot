@@ -42,6 +42,16 @@ Examples:
   static-webshot capture https://example.com --resize 800x600
   static-webshot capture https://example.com --resize 800
   static-webshot capture https://example.com --mask ".ad-banner" --mask ".cookie-notice"
+  static-webshot capture https://example.com --full-page -o before.png
+  static-webshot capture https://example.com --full-page --max-height 8000
+
+Full-page captures:
+  --full-page captures the whole page at the viewport width instead of only
+  the first screen. Images with loading="lazy" are switched to eager first so
+  the content below the fold is not blank. Pages taller than 16384px (Chrome's
+  limit) are cut there with a warning; --max-height cuts earlier. Pages of
+  different lengths can still be compared: compare pads the shorter image and
+  reports the extra length as a difference.
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -81,6 +91,13 @@ Examples:
 				}
 			}
 
+			if cfg.MaxHeight < 0 {
+				return fmt.Errorf("invalid max-height: %d", cfg.MaxHeight)
+			}
+			if cfg.MaxHeight > 0 && !cfg.FullPage {
+				return fmt.Errorf("--max-height requires --full-page")
+			}
+
 			cfg.Masks = masks
 			cfg.WaitSelectors = waitSelectors
 
@@ -114,6 +131,9 @@ Examples:
 	cmd.Flags().StringVar(&cfg.Preset, "preset", cfg.Preset, "Device preset (desktop, mobile)")
 	cmd.Flags().StringVar(&viewport, "viewport", "", "Viewport size (WIDTH or WIDTHxHEIGHT)")
 	cmd.Flags().StringVar(&resize, "resize", "", "Output image size (WIDTH or WIDTHxHEIGHT)")
+	cmd.Flags().BoolVar(&cfg.FullPage, "full-page", cfg.FullPage, "Capture the whole page, not just the viewport")
+	cmd.Flags().IntVar(&cfg.MaxHeight, "max-height", cfg.MaxHeight,
+		"With --full-page, cut the capture at this height in CSS pixels (0 = Chrome's limit, 16384)")
 	cmd.Flags().IntVar(&cfg.WaitAfter, "wait-after", cfg.WaitAfter, "Wait time after page load in milliseconds")
 	cmd.Flags().BoolVar(&cfg.Headless, "headless", cfg.Headless, "Run in headless mode")
 	cmd.Flags().BoolVar(&headful, "headful", false, "Run in headful mode (opposite of headless)")

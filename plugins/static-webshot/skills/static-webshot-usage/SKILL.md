@@ -43,17 +43,26 @@ diff you have not sanity-checked.
 | "screenshot this page" | `static-webshot capture <url> -o shot.png` |
 | "…on mobile" | `capture <url> --preset mobile` |
 | "…at this width" | `capture <url> --viewport 1280x720` |
+| "the whole page" / "check my refactor didn't change the look" | `capture <url> --full-page` (both captures) |
 | "did this page change?" | `capture` both, then `compare <baseline> <current>` |
 | "show me what changed" | `compare a.png b.png -o diff.png` (three panels: baseline, diff, current) |
 | "give me the numbers" | add `--digest-json result.json` |
 
 `compare` takes **image paths, not URLs**.
 
+**`capture` takes only the first screen unless you pass `--full-page`.** For a
+before/after check of a change that must not alter the look (speed work,
+refactoring), use `--full-page` on both captures — the regressions are usually
+below the fold. Don't emulate it with a tall `--viewport`: that stretches
+`100vh` sections. Pages over 16384px are cut there (a warning says so); a
+different page length counts as a difference in `compare`.
+
 ## 4. Making a page hold still
 
 Everything below is already automatic: animations and transitions off, caret
 hidden, instant scrolling, autoplay off, video and audio frozen,
-IntersectionObserver forced so lazy content is present, Web Animations API
+IntersectionObserver forced so lazy content is present (and, with
+`--full-page`, `loading="lazy"` switched to eager), Web Animations API
 disabled, and Swiper / Slick / Owl Carousel / Flickity / Bootstrap 5 carousels
 stopped.
 
@@ -97,3 +106,4 @@ Parse `--digest-json`, not the console output.
 | two captures of the same page differ | remaining nondeterminism — work through §4 |
 | huge diff, page looks identical | antialiasing or a different machine — `--ignore-antialiasing`, raise `--color-threshold` |
 | screenshot short or missing content | lazy content had not arrived — `--wait-selector`, then `--wait-after` |
+| only the first screen was captured | add `--full-page` |

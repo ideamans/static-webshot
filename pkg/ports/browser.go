@@ -18,6 +18,12 @@ type BrowserOptions struct {
 	ProxyServer       string            // HTTP proxy server URL
 }
 
+// ScreenshotOptions configures what area a screenshot covers.
+type ScreenshotOptions struct {
+	FullPage bool // Capture the whole page instead of the viewport
+	Height   int  // Height to capture in CSS pixels when FullPage is set (0 = whole page)
+}
+
 // Browser abstracts browser automation for page screenshot capture.
 type Browser interface {
 	// Launch starts the browser with the given options.
@@ -44,8 +50,15 @@ type Browser interface {
 	// ApplyMasks hides elements matching the given CSS selectors.
 	ApplyMasks(ctx context.Context, selectors []string) error
 
-	// Screenshot captures a full-page screenshot.
-	Screenshot(ctx context.Context) ([]byte, error)
+	// LoadLazyContent switches native lazy loading (loading="lazy") to eager
+	// so that images and iframes below the fold are fetched before capture.
+	LoadLazyContent(ctx context.Context) error
+
+	// PageHeight returns the height of the page content in CSS pixels.
+	PageHeight(ctx context.Context) (int, error)
+
+	// Screenshot captures the viewport, or the whole page when opts.FullPage is set.
+	Screenshot(ctx context.Context, opts ScreenshotOptions) ([]byte, error)
 
 	// Close shuts down the browser.
 	Close() error
