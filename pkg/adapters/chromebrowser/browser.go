@@ -36,6 +36,9 @@ func (b *Browser) Launch(ctx context.Context, opts ports.BrowserOptions) error {
 		chromedp.Flag("hide-scrollbars", true),
 		chromedp.Flag("autoplay-policy", "user-gesture-required"),
 		chromedp.Flag("disable-background-media-suspend", true),
+		// chromedp gives Chrome 20s to start. A freshly installed Chrome on a
+		// cold machine (first run, CI, containers) can take longer.
+		chromedp.WSURLReadTimeout(60*time.Second),
 	)
 
 	// Handle headless mode
