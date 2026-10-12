@@ -23,6 +23,6 @@
     "Masked regions cannot report a regression, so mask as little as possible.",
     "Prefer --wait-selector over a longer --wait-after for content that arrives late.",
     "A Chrome or Chromium install is required; point at a specific one with --chrome-path.",
-    "The archive is named after the version WITH the v prefix, e.g. static-webshot_v0.4.0_darwin_arm64.tar.gz, and there is no darwin_amd64 build."
+    "The archive is named after the version WITH the v prefix, e.g. static-webshot_v0.4.1_darwin_arm64.tar.gz, and there is no darwin_amd64 build."
   ]
 }

@@ -18,7 +18,7 @@ import (
 // TestPluginSkills asserts plugin.json carries the same value. version below
 // is overwritten by goreleaser's -ldflags at build time, so it cannot be used
 // for that comparison.
-const PluginVersion = "0.4.0"
+const PluginVersion = "0.4.1"
 
 var version = "v" + PluginVersion
 
