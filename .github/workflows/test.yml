@@ -22,7 +22,7 @@ jobs:
             runner: ubuntu-24.04-arm
           - os: darwin
             arch: arm64
-            runner: macos-15
+            runner: macos-26
           - os: windows
             arch: amd64
             runner: windows-latest
@@ -96,7 +96,7 @@ jobs:
           - os: linux
             runner: ubuntu-latest
           - os: darwin
-            runner: macos-15
+            runner: macos-26
           - os: windows
             runner: windows-latest
 
