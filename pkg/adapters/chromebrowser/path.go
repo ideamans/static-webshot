@@ -2,12 +2,17 @@
 package chromebrowser
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strconv"
+	"strings"
 
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 )
 
 // ResolveChromePath resolves the Chrome executable path in the following order:
@@ -145,43 +150,109 @@ func getPlaywrightChromiumPath() string {
 	}
 
 	// Playwright stores browsers under ms-playwright directory
-	playwrightDir := filepath.Join(cacheDir, "ms-playwright")
-
-	// Find the chromium directory (version may vary)
-	entries, err := os.ReadDir(playwrightDir)
+	path, err := findPlaywrightChromium(filepath.Join(cacheDir, "ms-playwright"), runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return ""
 	}
+	return path
+}
 
-	// Look for chromium-* directory
-	var chromiumDir string
+// findPlaywrightChromium looks for a Chromium executable under playwrightDir.
+//
+// Each install lives in a chromium-<revision> directory, and several revisions
+// can sit side by side when the machine has run more than one Playwright
+// release. The newest revision whose executable exists wins.
+//
+// Match on the "chromium-" prefix, not the first eight characters: Playwright
+// also installs "chromium_headless_shell-<revision>" beside it, which starts
+// with the same eight characters but holds a headless shell, not a browser.
+func findPlaywrightChromium(playwrightDir, goos, goarch string) (string, error) {
+	candidates := playwrightChromiumExecutables(goos, goarch)
+	if len(candidates) == 0 {
+		return "", errors.New("unsupported platform for playwright chromium: " + goos + "/" + goarch)
+	}
+
+	entries, err := os.ReadDir(playwrightDir)
+	if err != nil {
+		return "", fmt.Errorf("playwright reported success but %s is unreadable: %w", playwrightDir, err)
+	}
+
+	type install struct {
+		dir      string
+		revision int
+	}
+	var installs []install
+	var seen []string
 	for _, entry := range entries {
-		if entry.IsDir() && len(entry.Name()) > 8 && entry.Name()[:8] == "chromium" {
-			chromiumDir = filepath.Join(playwrightDir, entry.Name())
-			break
+		if !entry.IsDir() {
+			continue
+		}
+		seen = append(seen, entry.Name())
+		rev, ok := strings.CutPrefix(entry.Name(), "chromium-")
+		if !ok {
+			continue
+		}
+		n, err := strconv.Atoi(rev)
+		if err != nil {
+			n = -1
+		}
+		installs = append(installs, install{dir: filepath.Join(playwrightDir, entry.Name()), revision: n})
+	}
+
+	if len(installs) == 0 {
+		return "", fmt.Errorf("no chromium-* directory under %s (found: %s)",
+			playwrightDir, strings.Join(seen, ", "))
+	}
+
+	sort.SliceStable(installs, func(i, j int) bool { return installs[i].revision > installs[j].revision })
+
+	var tried []string
+	for _, in := range installs {
+		for _, rel := range candidates {
+			execPath := filepath.Join(in.dir, rel)
+			if _, err := os.Stat(execPath); err == nil {
+				return execPath, nil
+			}
+			tried = append(tried, execPath)
 		}
 	}
+	return "", fmt.Errorf("playwright chromium is installed but no executable was found (tried: %s)",
+		strings.Join(tried, ", "))
+}
 
-	if chromiumDir == "" {
-		return ""
-	}
-
-	// Platform-specific executable path within the chromium directory
-	var execPath string
-	switch runtime.GOOS {
+// playwrightChromiumExecutables lists where the executable sits inside a
+// chromium-<revision> directory, newest layout first.
+//
+// Newer Playwright releases ship Chromium as the Chrome for Testing build, which
+// moved the executable (for example chrome-mac/Chromium.app became
+// chrome-mac-arm64/Google Chrome for Testing.app). Older installs that are
+// already on disk keep the old layout, so both are accepted.
+func playwrightChromiumExecutables(goos, goarch string) []string {
+	const cftApp = "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+	switch goos {
 	case "darwin":
-		execPath = filepath.Join(chromiumDir, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium")
+		arch := "x64"
+		if goarch == "arm64" {
+			arch = "arm64"
+		}
+		return []string{
+			filepath.FromSlash("chrome-mac-" + arch + "/" + cftApp),
+			filepath.FromSlash("chrome-mac/Chromium.app/Contents/MacOS/Chromium"),
+		}
 	case "linux":
-		execPath = filepath.Join(chromiumDir, "chrome-linux", "chrome")
+		dir := "chrome-linux64"
+		if goarch == "arm64" {
+			dir = "chrome-linux-arm64"
+		}
+		return []string{
+			filepath.Join(dir, "chrome"),
+			filepath.Join("chrome-linux", "chrome"),
+		}
 	case "windows":
-		execPath = filepath.Join(chromiumDir, "chrome-win", "chrome.exe")
-	default:
-		return ""
+		return []string{
+			filepath.Join("chrome-win64", "chrome.exe"),
+			filepath.Join("chrome-win", "chrome.exe"),
+		}
 	}
-
-	if _, err := os.Stat(execPath); err == nil {
-		return execPath
-	}
-
-	return ""
+	return nil
 }

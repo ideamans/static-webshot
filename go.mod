@@ -8,16 +8,15 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20241022234722-4d5d5faf59fb
 	github.com/chromedp/chromedp v0.11.2
 	github.com/ideamans/go-llm-cli-kit v0.1.1
+	github.com/mxschmitt/playwright-go v0.6401.0
 	github.com/orisano/pixelmatch v0.0.0-20230914042517-fa304d1dc785
-	github.com/playwright-community/playwright-go v0.5200.1
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/image v0.45.0
 )
 
 require (
 	github.com/chromedp/sysutil v1.1.0 // indirect
-	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
